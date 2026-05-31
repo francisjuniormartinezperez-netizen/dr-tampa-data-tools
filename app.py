@@ -7,7 +7,7 @@ import numpy as np
 import re
 
 st.set_page_config(
-    page_title="DR Scouting Data Tools",
+    page_title="DR Tampa Data Tools",
     layout="wide"
 )
 
@@ -22,11 +22,14 @@ WHITE = "#FFFFFF"
 BASE_DIR = Path(".")
 ASSETS_DIR = BASE_DIR / "assets"
 VIDEOS_DIR = BASE_DIR / "Videos"
+DATA_DIR = BASE_DIR / "Data"
 
 ASSETS_DIR.mkdir(exist_ok=True)
 VIDEOS_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(exist_ok=True)
 
 LOGO_PATH = ASSETS_DIR / "Tampa_logo.png"
+MASTER_CSV = DATA_DIR / "master_trackman.csv"
 
 pitch_colors = {
     "Fastball": "#FF3333",
@@ -191,13 +194,6 @@ hr {{
     letter-spacing: 0.5px;
 }}
 
-div[data-testid="stFileUploader"] {{
-    background-color: rgba(8,42,69,0.75);
-    border: 1px dashed rgba(143,211,255,0.35);
-    border-radius: 10px;
-    padding: 10px;
-}}
-
 .stDataFrame {{
     border: 1px solid rgba(143,211,255,0.18);
     border-radius: 8px;
@@ -347,7 +343,7 @@ if LOGO_PATH.exists():
 else:
     st.markdown("""
     <div style="text-align:center; font-size:36px; font-weight:800; color:#EAF4FF; letter-spacing:3px;">
-        TAMPA BAY
+        DR TAMPA DATA TOOLS
     </div>
     """, unsafe_allow_html=True)
 
@@ -358,17 +354,16 @@ st.markdown("""
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
+# LOAD FIXED DATA
+if MASTER_CSV.exists():
+    df = pd.read_csv(MASTER_CSV)
+else:
+    df = make_demo_data()
+
 # SIDEBAR
 st.sidebar.markdown("## DR Tampa Data Tools")
 st.sidebar.markdown("Internal Player Evaluation")
 st.sidebar.markdown("---")
-
-uploaded_file = st.sidebar.file_uploader("Upload TrackMan CSV", type=["csv"])
-
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-else:
-    df = make_demo_data()
 
 if "Pitcher" in df.columns:
     players = sorted(df["Pitcher"].dropna().unique())
@@ -403,12 +398,14 @@ if call_filter != "All" and "PitchCall" in filtered_df.columns:
     filtered_df = filtered_df[filtered_df["PitchCall"] == call_filter]
 
 st.sidebar.markdown("### Data Source")
-if uploaded_file:
-    st.sidebar.write(f"CSV: {uploaded_file.name}")
+
+if MASTER_CSV.exists():
+    st.sidebar.write("TrackMan Database Loaded")
+    st.sidebar.write(f"Total Rows: {len(df):,}")
 else:
     st.sidebar.write("Demo TrackMan Data")
 
-st.sidebar.write(f"Rows: {len(filtered_df):,}")
+st.sidebar.write(f"Filtered Rows: {len(filtered_df):,}")
 
 st.sidebar.download_button(
     "Export Filtered Data",
@@ -699,14 +696,6 @@ with t2:
 
     player_folder = VIDEOS_DIR / clean_name(selected_player)
     player_folder.mkdir(exist_ok=True)
-
-    uploaded_video = st.file_uploader("Upload Video", type=["mp4", "mov"], key="video_upload")
-
-    if uploaded_video:
-        video_path = player_folder / uploaded_video.name
-        with open(video_path, "wb") as f:
-            f.write(uploaded_video.read())
-        st.success("Video saved.")
 
     video_files = list(player_folder.glob("*.mp4")) + list(player_folder.glob("*.mov"))
 
