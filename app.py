@@ -7,29 +7,28 @@ import numpy as np
 import re
 
 st.set_page_config(
-    page_title="DR Tampa Data Tools",
+    page_title="Player Evaluation Platform",
     layout="wide"
 )
 
+BASE_DIR = Path(".")
+ASSETS_DIR = BASE_DIR / "assets"
+DATA_DIR = BASE_DIR / "Data"
+VIDEOS_DIR = BASE_DIR / "Videos"
+
+ASSETS_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(exist_ok=True)
+VIDEOS_DIR.mkdir(exist_ok=True)
+
+LOGO_PATH = ASSETS_DIR / "Tampa_logo.png"
+MASTER_CSV = DATA_DIR / "master_trackman.csv"
+
 NAVY = "#021426"
 PANEL = "#061F35"
-BORDER = "#164E73"
 TEXT = "#EAF4FF"
 MUTED = "#A9BDD0"
 BLUE = "#8FD3FF"
 WHITE = "#FFFFFF"
-
-BASE_DIR = Path(".")
-ASSETS_DIR = BASE_DIR / "assets"
-VIDEOS_DIR = BASE_DIR / "Videos"
-DATA_DIR = BASE_DIR / "Data"
-
-ASSETS_DIR.mkdir(exist_ok=True)
-VIDEOS_DIR.mkdir(exist_ok=True)
-DATA_DIR.mkdir(exist_ok=True)
-
-LOGO_PATH = ASSETS_DIR / "Tampa_logo.png"
-MASTER_CSV = DATA_DIR / "master_trackman.csv"
 
 pitch_colors = {
     "Fastball": "#FF3333",
@@ -56,51 +55,42 @@ html, body, [class*="css"] {{
 
 .stApp {{
     background:
-        radial-gradient(circle at top center, rgba(12,67,111,0.55) 0%, rgba(3,27,52,0.88) 32%, rgba(2,15,29,1) 78%),
+        radial-gradient(circle at top center, rgba(12,67,111,0.45) 0%, rgba(3,27,52,0.90) 35%, rgba(2,15,29,1) 85%),
         linear-gradient(180deg, #031B34, {NAVY});
     color: {TEXT};
 }}
 
 .main .block-container {{
-    padding-top: 0.6rem;
-    padding-left: 1.4rem;
-    padding-right: 1.4rem;
+    padding-top: 0.7rem;
     max-width: 1700px;
 }}
 
 section[data-testid="stSidebar"] {{
     background: linear-gradient(180deg, #03182B, #021426);
-    border-right: 1px solid {BORDER};
+    border-right: 1px solid rgba(143,211,255,0.20);
 }}
 
 section[data-testid="stSidebar"] * {{
     color: {TEXT};
 }}
 
-hr {{
-    border: none;
-    border-top: 1px solid rgba(143,211,255,0.25);
-    margin-top: 10px;
-    margin-bottom: 16px;
-}}
-
 .header-title {{
     text-align: center;
     color: {BLUE};
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
-    letter-spacing: 7px;
-    margin-top: -4px;
+    letter-spacing: 5px;
+    margin-top: 2px;
 }}
 
 .header-subtitle {{
     text-align: center;
     color: {MUTED};
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 4px;
-    margin-top: 7px;
-    margin-bottom: 14px;
+    letter-spacing: 3px;
+    margin-top: 8px;
+    margin-bottom: 16px;
 }}
 
 .section-title {{
@@ -126,7 +116,7 @@ hr {{
     border-radius: 9px;
     padding: 14px 10px;
     text-align: center;
-    min-height: 96px;
+    min-height: 94px;
 }}
 
 .metric-label {{
@@ -139,7 +129,7 @@ hr {{
 
 .metric-value {{
     color: {WHITE};
-    font-size: 31px;
+    font-size: 30px;
     font-weight: 500;
     line-height: 1.1;
     margin-top: 8px;
@@ -153,7 +143,7 @@ hr {{
 }}
 
 .player-name {{
-    font-size: 28px;
+    font-size: 27px;
     font-weight: 800;
     letter-spacing: 0.5px;
 }}
@@ -194,17 +184,16 @@ hr {{
     letter-spacing: 0.5px;
 }}
 
+hr {{
+    border: none;
+    border-top: 1px solid rgba(143,211,255,0.25);
+    margin-top: 10px;
+    margin-bottom: 16px;
+}}
+
 .stDataFrame {{
     border: 1px solid rgba(143,211,255,0.18);
     border-radius: 8px;
-}}
-
-.stSelectbox label {{
-    color: {BLUE} !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    font-size: 11px !important;
-    letter-spacing: 0.6px;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -212,38 +201,6 @@ hr {{
 
 def clean_name(name):
     return re.sub(r'[^A-Za-z0-9_-]+', '_', str(name).strip())
-
-
-def style_fig(fig, height=410):
-    fig.update_layout(
-        height=height,
-        plot_bgcolor=PANEL,
-        paper_bgcolor=PANEL,
-        font=dict(color=TEXT, size=11),
-        margin=dict(l=45, r=25, t=38, b=42),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(color=TEXT, size=10)
-        )
-    )
-
-    fig.update_xaxes(
-        gridcolor="rgba(255,255,255,0.08)",
-        zerolinecolor="rgba(255,255,255,0.30)",
-        linecolor="rgba(255,255,255,0.20)",
-        tickfont=dict(color=TEXT, size=10),
-        title_font=dict(color=TEXT, size=11)
-    )
-
-    fig.update_yaxes(
-        gridcolor="rgba(255,255,255,0.08)",
-        zerolinecolor="rgba(255,255,255,0.30)",
-        linecolor="rgba(255,255,255,0.20)",
-        tickfont=dict(color=TEXT, size=10),
-        title_font=dict(color=TEXT, size=11)
-    )
-
-    return fig
 
 
 def metric_box(label, value, unit=""):
@@ -256,9 +213,30 @@ def metric_box(label, value, unit=""):
     """, unsafe_allow_html=True)
 
 
+def style_fig(fig, height=410):
+    fig.update_layout(
+        height=height,
+        plot_bgcolor=PANEL,
+        paper_bgcolor=PANEL,
+        font=dict(color=TEXT, size=11),
+        margin=dict(l=45, r=25, t=38, b=42),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT, size=10))
+    )
+    fig.update_xaxes(
+        gridcolor="rgba(255,255,255,0.08)",
+        zerolinecolor="rgba(255,255,255,0.30)",
+        linecolor="rgba(255,255,255,0.20)"
+    )
+    fig.update_yaxes(
+        gridcolor="rgba(255,255,255,0.08)",
+        zerolinecolor="rgba(255,255,255,0.30)",
+        linecolor="rgba(255,255,255,0.20)"
+    )
+    return fig
+
+
 def make_demo_data():
     np.random.seed(7)
-
     pitch_types = (
         ["4-Seam Fastball"] * 113 +
         ["Sinker"] * 47 +
@@ -314,13 +292,11 @@ def make_demo_data():
     demo["PlateLocHeight"] = np.random.normal(2.5, 0.75, len(demo))
     demo["Extension"] = np.random.normal(6.3, 0.25, len(demo))
     demo["PitchNo"] = range(1, len(demo) + 1)
-
     demo["PitchCall"] = np.random.choice(
         ["StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay", "BallCalled"],
         len(demo),
         p=[0.30, 0.20, 0.22, 0.18, 0.10]
     )
-
     return demo
 
 
@@ -334,35 +310,33 @@ def safe_metric(df, col, func="mean", decimals=1):
     return "-"
 
 
-# HEADER
+# HEADER WITH LOGO
 if LOGO_PATH.exists():
     logo = Image.open(LOGO_PATH)
-    c1, c2, c3 = st.columns([1.2, 2.4, 1.2])
+    c1, c2, c3 = st.columns([1.25, 2.5, 1.25])
     with c2:
         st.image(logo, use_container_width=True)
 else:
-    st.markdown("""
-    <div style="text-align:center; font-size:36px; font-weight:800; color:#EAF4FF; letter-spacing:3px;">
-        DR TAMPA DATA TOOLS
-    </div>
-    """, unsafe_allow_html=True)
+    st.error("Logo not found. Put your logo here: assets/Tampa_logo.png")
 
 st.markdown("""
-<div class="header-title">DR TAMPA DATA TOOLS</div>
-<div class="header-subtitle">INTERNATIONAL PLAYER EVALUATION HUB</div>
+<div class="header-title">PLAYER EVALUATION PLATFORM</div>
+<div class="header-subtitle">DOMINICAN REPUBLIC OPERATIONS &nbsp; | &nbsp; TRACKMAN • VIDEO • SCOUTING • DEVELOPMENT</div>
 """, unsafe_allow_html=True)
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
-# LOAD FIXED DATA
+
+# LOAD DATA
 if MASTER_CSV.exists():
     df = pd.read_csv(MASTER_CSV)
 else:
     df = make_demo_data()
 
+
 # SIDEBAR
-st.sidebar.markdown("## DR Tampa Data Tools")
-st.sidebar.markdown("Internal Player Evaluation")
+st.sidebar.markdown("## Player Evaluation")
+st.sidebar.markdown("Dominican Republic Operations")
 st.sidebar.markdown("---")
 
 if "Pitcher" in df.columns:
@@ -373,9 +347,6 @@ else:
 selected_player = st.sidebar.selectbox("Select Player", players)
 
 player_df = df[df["Pitcher"] == selected_player].copy() if "Pitcher" in df.columns else df.copy()
-
-if player_df.empty:
-    player_df = df.copy()
 
 pitch_types_available = ["All"]
 if "TaggedPitchType" in player_df.columns:
@@ -398,7 +369,6 @@ if call_filter != "All" and "PitchCall" in filtered_df.columns:
     filtered_df = filtered_df[filtered_df["PitchCall"] == call_filter]
 
 st.sidebar.markdown("### Data Source")
-
 if MASTER_CSV.exists():
     st.sidebar.write("TrackMan Database Loaded")
     st.sidebar.write(f"Total Rows: {len(df):,}")
@@ -414,15 +384,33 @@ st.sidebar.download_button(
     mime="text/csv"
 )
 
-# PLAYER OVERVIEW
+
+# TOP DASHBOARD
+dash1, dash2, dash3, dash4, dash5 = st.columns(5)
+
+with dash1:
+    metric_box("Players Tracked", len(players), "")
+with dash2:
+    metric_box("Total Pitches", f"{len(df):,}", "")
+with dash3:
+    metric_box("Avg FB Velo", safe_metric(df[df.get("TaggedPitchType", "") == "4-Seam Fastball"] if "TaggedPitchType" in df.columns else df, "RelSpeed"), "mph")
+with dash4:
+    metric_box("Videos Available", len(list(VIDEOS_DIR.glob('**/*.mp4'))), "")
+with dash5:
+    metric_box("Sessions Logged", "Demo", "")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+
+# PLAYER + SUMMARY
 left, right = st.columns([1.12, 2.88])
 
 with left:
-    st.markdown('<div class="section-title">Player Overview</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Player Profile</div>', unsafe_allow_html=True)
 
     initials = "".join([x[:1] for x in str(selected_player).split()[:2]]).upper()
     if not initials:
-        initials = "DT"
+        initials = "DR"
 
     st.markdown(f"""
     <div class="panel">
@@ -436,23 +424,22 @@ with left:
             </div>
             <div>
                 <div class="player-name">{str(selected_player).upper()}</div>
-                <div class="player-meta">RHP &nbsp; | &nbsp; Pitcher</div>
+                <div class="player-meta">Pitcher &nbsp; | &nbsp; Dominican Republic</div>
             </div>
         </div>
         <hr>
         <div class="info-grid">
+            <div class="info-label">Status</div><div class="info-value">Follow</div>
             <div class="info-label">Age</div><div class="info-value">17</div>
             <div class="info-label">Height</div><div class="info-value">6'2"</div>
             <div class="info-label">Weight</div><div class="info-value">175 lbs</div>
             <div class="info-label">Bats / Throws</div><div class="info-value">R / R</div>
-            <div class="info-label">Academy</div><div class="info-value">DR Baseball Academy</div>
             <div class="info-label">Scout</div><div class="info-value">Francis</div>
         </div>
         <hr>
         <div class="summary-text">
-            Athletic right-handed pitcher with projectable frame and advanced arm speed.
-            Works in the zone and shows feel for multiple pitches. Continue evaluating command,
-            pitchability and performance against hitters.
+            Athletic pitcher with projectable frame and present arm speed.
+            Continue monitoring strike throwing, pitch shape, command and game usage.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -475,15 +462,15 @@ with right:
         whiff_pct = "-"
 
     with m1:
-        metric_box("AVG VELO", avg_velo, "mph")
+        metric_box("Avg Velo", avg_velo, "mph")
     with m2:
-        metric_box("MAX VELO", max_velo, "mph")
+        metric_box("Max Velo", max_velo, "mph")
     with m3:
-        metric_box("STRIKE %", strike_pct, "%")
+        metric_box("Strike %", strike_pct, "%")
     with m4:
-        metric_box("WHIFF %", whiff_pct, "%")
+        metric_box("Whiff %", whiff_pct, "%")
     with m5:
-        metric_box("TOTAL PITCHES", f"{len(filtered_df):,}", "")
+        metric_box("Total Pitches", f"{len(filtered_df):,}", "")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -515,7 +502,7 @@ with right:
             st.dataframe(arsenal, use_container_width=True, height=265)
 
     with a2:
-        st.markdown('<div class="section-title">Pitch Usage Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Pitch Usage</div>', unsafe_allow_html=True)
 
         if "TaggedPitchType" in filtered_df.columns and not filtered_df.empty:
             usage = filtered_df["TaggedPitchType"].value_counts().reset_index()
@@ -529,16 +516,12 @@ with right:
                 color="Pitch Type",
                 color_discrete_map=pitch_colors
             )
-
-            fig_usage.update_traces(
-                textinfo="percent",
-                marker=dict(line=dict(color="#031B34", width=2))
-            )
-
+            fig_usage.update_traces(textinfo="percent", marker=dict(line=dict(color="#031B34", width=2)))
             fig_usage = style_fig(fig_usage, height=305)
             st.plotly_chart(fig_usage, use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
+
 
 # CHARTS
 g1, g2, g3 = st.columns(3)
@@ -555,20 +538,10 @@ with g1:
             color_discrete_map=pitch_colors,
             hover_data=[c for c in ["PitchNo", "TaggedPitchType", "PitchCall", "RelSpeed"] if c in filtered_df.columns]
         )
-
-        fig_loc.add_shape(
-            type="rect",
-            x0=-0.83,
-            x1=0.83,
-            y0=1.5,
-            y1=3.5,
-            line=dict(color=WHITE, width=2)
-        )
-
+        fig_loc.add_shape(type="rect", x0=-0.83, x1=0.83, y0=1.5, y1=3.5, line=dict(color=WHITE, width=2))
         fig_loc.update_traces(marker=dict(size=7, opacity=0.88, line=dict(width=0.5, color=WHITE)))
         fig_loc.update_xaxes(range=[-3, 3], title="Horizontal Location")
         fig_loc.update_yaxes(range=[0, 5], title="Vertical Location")
-
         fig_loc = style_fig(fig_loc)
         st.plotly_chart(fig_loc, use_container_width=True)
 
@@ -584,11 +557,9 @@ with g2:
             color_discrete_map=pitch_colors,
             hover_data=[c for c in ["PitchNo", "TaggedPitchType", "RelSpeed", "SpinRate"] if c in filtered_df.columns]
         )
-
         fig_move.update_traces(marker=dict(size=7, opacity=0.90, line=dict(width=0.4, color=WHITE)))
         fig_move.update_xaxes(title="Horizontal Break")
         fig_move.update_yaxes(title="Induced Vertical Break")
-
         fig_move = style_fig(fig_move)
         st.plotly_chart(fig_move, use_container_width=True)
 
@@ -604,11 +575,9 @@ with g3:
             color_discrete_map=pitch_colors,
             hover_data=[c for c in ["PitchNo", "TaggedPitchType", "RelSpeed"] if c in filtered_df.columns]
         )
-
         fig_rel.update_traces(marker=dict(size=7, opacity=0.88, line=dict(width=0.4, color=WHITE)))
         fig_rel.update_xaxes(title="Release Side")
         fig_rel.update_yaxes(title="Release Height")
-
         fig_rel = style_fig(fig_rel)
         st.plotly_chart(fig_rel, use_container_width=True)
 
@@ -620,7 +589,6 @@ with g4:
     if "RelSpeed" in filtered_df.columns and not filtered_df.empty:
         velo_df = filtered_df.reset_index(drop=True)
         velo_df["Pitch #"] = velo_df.index + 1
-
         fig_velo = px.line(
             velo_df,
             x="Pitch #",
@@ -629,11 +597,9 @@ with g4:
             color_discrete_map=pitch_colors,
             markers=True
         )
-
         fig_velo.update_traces(line=dict(width=2), marker=dict(size=4))
         fig_velo.update_xaxes(title="Pitch Number")
         fig_velo.update_yaxes(title="Velocity")
-
         fig_velo = style_fig(fig_velo)
         st.plotly_chart(fig_velo, use_container_width=True)
 
@@ -649,10 +615,8 @@ with g5:
             color_discrete_map=pitch_colors,
             points="all"
         )
-
         fig_box.update_xaxes(title="")
         fig_box.update_yaxes(title="Velocity")
-
         fig_box = style_fig(fig_box)
         st.plotly_chart(fig_box, use_container_width=True)
 
@@ -662,17 +626,11 @@ with g6:
     if "PitchCall" in filtered_df.columns and not filtered_df.empty:
         call_counts = filtered_df["PitchCall"].value_counts().reset_index()
         call_counts.columns = ["Pitch Call", "Count"]
-
-        fig_call = px.pie(
-            call_counts,
-            names="Pitch Call",
-            values="Count",
-            hole=0.60
-        )
-
+        fig_call = px.pie(call_counts, names="Pitch Call", values="Count", hole=0.60)
         fig_call.update_traces(marker=dict(line=dict(color="#031B34", width=2)))
         fig_call = style_fig(fig_call)
         st.plotly_chart(fig_call, use_container_width=True)
+
 
 # TABLE + VIDEO
 t1, t2 = st.columns([1.45, 1])
@@ -686,10 +644,7 @@ with t1:
         "PlateLocSide", "PlateLocHeight", "RelSide", "RelHeight"
     ] if c in filtered_df.columns]
 
-    if show_cols:
-        st.dataframe(filtered_df[show_cols], use_container_width=True, height=340)
-    else:
-        st.dataframe(filtered_df, use_container_width=True, height=340)
+    st.dataframe(filtered_df[show_cols] if show_cols else filtered_df, use_container_width=True, height=340)
 
 with t2:
     st.markdown('<div class="section-title">Video Library</div>', unsafe_allow_html=True)
@@ -707,6 +662,6 @@ with t2:
         st.info("No videos uploaded for this player.")
 
 st.markdown(
-    "<div class='footer'>DR TAMPA DATA TOOLS v1.0 &nbsp; | &nbsp; CONFIDENTIAL — FOR INTERNAL USE ONLY</div>",
+    "<div class='footer'>PLAYER EVALUATION PLATFORM v1.0 &nbsp; | &nbsp; CONFIDENTIAL — FOR INTERNAL USE ONLY</div>",
     unsafe_allow_html=True
 )
