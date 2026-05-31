@@ -320,8 +320,8 @@ else:
     st.error("Logo not found. Put your logo here: assets/Tampa_logo.png")
 
 st.markdown("""
-<div class="header-title">PLAYER EVALUATION PLATFORM</div>
-<div class="header-subtitle">DOMINICAN REPUBLIC OPERATIONS &nbsp; | &nbsp; TRACKMAN • VIDEO • SCOUTING • DEVELOPMENT</div>
+<div class="header-title">INTERNATIONAL SCOUTING & PLAYER DEVELOPMENT</div>
+<div class="header-subtitle">DOMINICAN REPUBLIC OPERATIONS &nbsp; | &nbsp; TRACKMAN • VIDEO • SCOUTING • DEVELOPMENT by Francis Martinez</div>
 """, unsafe_allow_html=True)
 
 st.markdown("<hr>", unsafe_allow_html=True)
