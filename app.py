@@ -7,7 +7,7 @@ import numpy as np
 import re
 
 st.set_page_config(
-    page_title="Player Evaluation Platform",
+    page_title="INTERNATIONAL SCOUTING & PLAYER DEVELOPMENT",
     layout="wide"
 )
 
