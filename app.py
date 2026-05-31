@@ -20,7 +20,7 @@ ASSETS_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 VIDEOS_DIR.mkdir(exist_ok=True)
 
-LOGO_PATH = ASSETS_DIR / "Tampa_logo.png"
+LOGO_PATH = ASSETS_DIR / "Tampa_logo.gif"
 MASTER_CSV = DATA_DIR / "master_trackman.csv"
 
 NAVY = "#021426"
