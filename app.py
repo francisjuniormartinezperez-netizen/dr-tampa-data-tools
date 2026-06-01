@@ -436,7 +436,69 @@ if pitch_filter != "All" and "TaggedPitchType" in filtered_df.columns:
 
 if call_filter != "All" and "PitchCall" in filtered_df.columns:
     filtered_df = filtered_df[filtered_df["PitchCall"].astype(str) == call_filter]
+# -------------------------
+# SESSION VIEW
+# -------------------------
 
+with st.expander("Session View", expanded=True):
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        session_view = st.radio(
+            "Session Type",
+            ["All Sessions", "Bullpen", "Live BP", "Game"],
+            horizontal=True
+        )
+
+    with col2:
+        if "SessionDate" in filtered_df.columns:
+            session_dates = ["All"] + sorted(
+                filtered_df["SessionDate"].dropna().astype(str).unique()
+            )
+
+            selected_session_date = st.selectbox(
+                "Session Date",
+                session_dates
+            )
+        else:
+            selected_session_date = "All"
+
+    with col3:
+        if "SourceFile" in filtered_df.columns:
+            source_files = ["All"] + sorted(
+                filtered_df["SourceFile"].dropna().astype(str).unique()
+            )
+
+            selected_source_file = st.selectbox(
+                "Source File",
+                source_files
+            )
+        else:
+            selected_source_file = "All"
+
+if session_view != "All Sessions" and "SessionType" in filtered_df.columns:
+    filtered_df = filtered_df[
+        filtered_df["SessionType"] == session_view
+    ]
+
+if selected_session_date != "All" and "SessionDate" in filtered_df.columns:
+    filtered_df = filtered_df[
+        filtered_df["SessionDate"].astype(str)
+        == selected_session_date
+    ]
+
+if selected_source_file != "All" and "SourceFile" in filtered_df.columns:
+    filtered_df = filtered_df[
+        filtered_df["SourceFile"].astype(str)
+        == selected_source_file
+    ]
+
+# -------------------------
+# DATA SOURCE
+# -------------------------
+
+st.sidebar.markdown("### Data Source")
 st.sidebar.markdown("### Data Source")
 
 if csv_files:
