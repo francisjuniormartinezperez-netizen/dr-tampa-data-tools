@@ -579,21 +579,73 @@ st.markdown("<br>", unsafe_allow_html=True)
 # SESSION HISTORY
 st.markdown('<div class="section-title">Session History</div>', unsafe_allow_html=True)
 
-if {"SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
+if {"Pitcher", "SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
+
+    group_cols = ["Pitcher", "SessionDate", "SessionType", "SourceFile"]
+
+    agg_dict = {
+        "Pitches": ("Pitcher", "count")
+    }
+
+    if "RelSpeed" in df.columns:
+        agg_dict["Avg Velo"] = ("RelSpeed", "mean")
+        agg_dict["Max Velo"] = ("RelSpeed", "max")
+
+    if "PitchCall" in df.columns:
+        strike_calls = ["StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay"]
+
+        temp_sessions = df.copy()
+        temp_sessions["IsStrike"] = temp_sessions["PitchCall"].isin(strike_calls)
+
+        agg_dict["Strike %"] = ("IsStrike", "mean")
+    else:
+        temp_sessions = df.copy()
+
     sessions = (
-        df.groupby(["SessionDate", "SessionType", "SourceFile"])
-        .size()
-        .reset_index(name="Pitches")
-        .sort_values("SessionDate", ascending=False)
+        temp_sessions
+        .groupby(group_cols)
+        .agg(**agg_dict)
+        .reset_index()
+        .sort_values(["SessionDate", "Pitcher"], ascending=[False, True])
     )
-    st.dataframe(sessions, use_container_width=True, height=180)
+
+    if "Avg Velo" in sessions.columns:
+        sessions["Avg Velo"] = sessions["Avg Velo"].round(1)
+
+    if "Max Velo" in sessions.columns:
+        sessions["Max Velo"] = sessions["Max Velo"].round(1)
+
+    if "Strike %" in sessions.columns:
+        sessions["Strike %"] = (sessions["Strike %"] * 100).round(1)
+
+    sessions = sessions.rename(columns={
+        "Pitcher": "Player",
+        "SessionDate": "Date",
+        "SessionType": "Type",
+        "SourceFile": "File"
+    })
+
+    preferred_cols = [
+        "Player",
+        "Date",
+        "Type",
+        "Pitches",
+        "Avg Velo",
+        "Max Velo",
+        "Strike %",
+        "File"
+    ]
+
+    display_cols = [c for c in preferred_cols if c in sessions.columns]
+
+    st.dataframe(
+        sessions[display_cols],
+        use_container_width=True,
+        height=260
+    )
+
 else:
     st.info("Session history will appear when CSV files are loaded inside the Data folder.")
-
-st.markdown("<br>", unsafe_allow_html=True)
-tab_overview, tab_trackman, tab_video, tab_raw = st.tabs(
-    ["Overview", "TrackMan Report", "Video Library", "Raw Data"]
-)
 # PLAYER PROFILE + TRACKMAN SUMMARY
 with tab_overview:
     left, right = st.columns([1.12, 2.88])
