@@ -854,13 +854,100 @@ with g3:
             y="RelHeight",
             color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["PitchNo", "TaggedPitchType", "RelSpeed", "SessionDate", "SessionType"] if c in filtered_df.columns]
+            hover_data=[
+                c for c in [
+                    "PitchNo",
+                    "TaggedPitchType",
+                    "PitchCall",
+                    "RelSpeed",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in filtered_df.columns
+            ]
         )
-        fig_rel.update_traces(marker=dict(size=7, opacity=0.88, line=dict(width=0.4, color=WHITE)))
-        fig_rel.update_xaxes(title="Release Side")
-        fig_rel.update_yaxes(title="Release Height")
-        fig_rel = style_fig(fig_rel)
+
+        fig_rel.update_traces(
+            marker=dict(
+                size=8,
+                opacity=0.88,
+                line=dict(width=0.6, color="white")
+            )
+        )
+
+        avg_side = filtered_df["RelSide"].mean()
+        avg_height = filtered_df["RelHeight"].mean()
+
+        # Average release lines
+        fig_rel.add_shape(
+            type="line",
+            x0=avg_side,
+            x1=avg_side,
+            y0=4.0,
+            y1=7.5,
+            line=dict(color="rgba(255,255,255,0.55)", width=2, dash="dash")
+        )
+
+        fig_rel.add_shape(
+            type="line",
+            x0=-3.5,
+            x1=3.5,
+            y0=avg_height,
+            y1=avg_height,
+            line=dict(color="rgba(255,255,255,0.55)", width=2, dash="dash")
+        )
+
+        # Consistency box around average
+        fig_rel.add_shape(
+            type="rect",
+            x0=avg_side - 0.35,
+            x1=avg_side + 0.35,
+            y0=avg_height - 0.25,
+            y1=avg_height + 0.25,
+            line=dict(color="rgba(143,211,255,0.75)", width=2),
+            fillcolor="rgba(143,211,255,0.08)"
+        )
+
+        fig_rel.update_xaxes(
+            range=[-3.5, 3.5],
+            title="Release Side",
+            zeroline=False
+        )
+
+        fig_rel.update_yaxes(
+            range=[4.0, 7.5],
+            title="Release Height",
+            zeroline=False
+        )
+
+        fig_rel = style_fig(fig_rel, height=430)
+
+        fig_rel.update_layout(
+            showlegend=True,
+            legend_title_text="Pitch Type"
+        )
+
         st.plotly_chart(fig_rel, use_container_width=True)
+
+        # Release consistency table
+        if "TaggedPitchType" in filtered_df.columns:
+            rel_table = (
+                filtered_df
+                .groupby("TaggedPitchType")
+                .agg(
+                    Pitches=("TaggedPitchType", "count"),
+                    AvgRelSide=("RelSide", "mean"),
+                    AvgRelHeight=("RelHeight", "mean"),
+                    RelSideSTD=("RelSide", "std"),
+                    RelHeightSTD=("RelHeight", "std")
+                )
+                .reset_index()
+            )
+
+            for col in ["AvgRelSide", "AvgRelHeight", "RelSideSTD", "RelHeightSTD"]:
+                rel_table[col] = rel_table[col].round(2)
+
+            st.dataframe(rel_table, use_container_width=True, height=180)
+
     else:
         st.info("Release data not available.")
 
