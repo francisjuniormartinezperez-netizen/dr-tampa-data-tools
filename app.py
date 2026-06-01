@@ -591,9 +591,12 @@ else:
     st.info("Session history will appear when CSV files are loaded inside the Data folder.")
 
 st.markdown("<br>", unsafe_allow_html=True)
-
+tab_overview, tab_trackman, tab_video, tab_raw = st.tabs(
+    ["Overview", "TrackMan Report", "Video Library", "Raw Data"]
+)
 # PLAYER PROFILE + TRACKMAN SUMMARY
-left, right = st.columns([1.12, 2.88])
+with tab_overview:
+    left, right = st.columns([1.12, 2.88])
 
 with left:
     st.markdown('<div class="section-title">Player Profile</div>', unsafe_allow_html=True)
