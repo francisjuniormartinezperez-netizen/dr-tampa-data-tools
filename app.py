@@ -516,7 +516,47 @@ st.sidebar.download_button(
     file_name=f"{clean_name(selected_player)}_filtered_trackman.csv",
     mime="text/csv"
 )
+# PLAYER BOARD
+st.markdown('<div class="section-title">Player Board</div>', unsafe_allow_html=True)
 
+if "Pitcher" in df.columns:
+    board = df.groupby("Pitcher").agg(
+        TotalPitches=("Pitcher", "count"),
+        AvgVelo=("RelSpeed", "mean") if "RelSpeed" in df.columns else ("Pitcher", "count"),
+        MaxVelo=("RelSpeed", "max") if "RelSpeed" in df.columns else ("Pitcher", "count"),
+        LatestSession=("SessionDate", "max") if "SessionDate" in df.columns else ("Pitcher", "count"),
+    ).reset_index()
+
+    if "PitchCall" in df.columns:
+        strike_calls = ["StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay"]
+
+        strike_df = (
+            df.assign(IsStrike=df["PitchCall"].isin(strike_calls))
+            .groupby("Pitcher")
+            .agg(StrikePct=("IsStrike", "mean"))
+            .reset_index()
+        )
+
+        strike_df["StrikePct"] = (strike_df["StrikePct"] * 100).round(1)
+        board = board.merge(strike_df, on="Pitcher", how="left")
+
+    if "RelSpeed" in df.columns:
+        board["AvgVelo"] = board["AvgVelo"].round(1)
+        board["MaxVelo"] = board["MaxVelo"].round(1)
+
+    board = board.rename(columns={
+        "Pitcher": "Player",
+        "TotalPitches": "Pitches",
+        "AvgVelo": "Avg Velo",
+        "MaxVelo": "Max Velo",
+        "LatestSession": "Latest Session",
+        "StrikePct": "Strike %"
+    })
+
+    st.dataframe(board, use_container_width=True, height=260)
+
+else:
+    st.info("Player Board will appear when the CSV has a Pitcher column.")
 # TOP DASHBOARD
 dash1, dash2, dash3, dash4, dash5 = st.columns(5)
 
