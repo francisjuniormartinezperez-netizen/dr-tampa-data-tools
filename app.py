@@ -886,7 +886,7 @@ if {"Pitcher", "SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
 else:
     st.info("Session history will appear when CSV files are loaded inside the Data folder.")
 # PLAYER PROFILE + TRACKMAN SUMMARY
-    left, right = st.columns([1.12, 2.88])
+left, right = st.columns([1.12, 2.88])
 
 with left:
     st.markdown('<div class="section-title">Player Profile</div>', unsafe_allow_html=True)
@@ -894,7 +894,6 @@ with left:
     initials = "".join([x[:1] for x in str(selected_player).split()[:2]]).upper()
     if not initials:
         initials = "DR"
-
     st.markdown(f"""
     <div class="panel">
         <div style="display:flex; gap:18px; align-items:center;">
