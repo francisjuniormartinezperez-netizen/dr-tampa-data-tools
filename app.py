@@ -884,7 +884,7 @@ if {"Pitcher", "SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
     )
 
 else:
-    st.info("Session history will appear when CSV files are loaded inside the Data folder.")rr
+    st.info("Session history will appear when CSV files are loaded inside the Data folder.")
 # PLAYER PROFILE + TRACKMAN SUMMARY
 with tab_overview:
     left, right = st.columns([1.12, 2.88])
