@@ -627,17 +627,123 @@ with g1:
             y="PlateLocHeight",
             color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["PitchNo", "TaggedPitchType", "PitchCall", "RelSpeed", "SessionDate", "SessionType"] if c in filtered_df.columns]
+            hover_data=[
+                c for c in [
+                    "PitchNo",
+                    "TaggedPitchType",
+                    "PitchCall",
+                    "RelSpeed",
+                    "SpinRate",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in filtered_df.columns
+            ]
         )
-        fig_loc.add_shape(type="rect", x0=-0.83, x1=0.83, y0=1.5, y1=3.5, line=dict(color=WHITE, width=2))
-        fig_loc.update_traces(marker=dict(size=7, opacity=0.88, line=dict(width=0.5, color=WHITE)))
-        fig_loc.update_xaxes(range=[-3, 3], title="Horizontal Location")
-        fig_loc.update_yaxes(range=[0, 5], title="Vertical Location")
-        fig_loc = style_fig(fig_loc)
+
+        fig_loc.update_traces(
+            marker=dict(
+                size=8,
+                opacity=0.88,
+                line=dict(width=0.6, color="white")
+            )
+        )
+
+        # Strike zone outer box
+        zone_left = -0.83
+        zone_right = 0.83
+        zone_bottom = 1.5
+        zone_top = 3.5
+
+        fig_loc.add_shape(
+            type="rect",
+            x0=zone_left,
+            x1=zone_right,
+            y0=zone_bottom,
+            y1=zone_top,
+            line=dict(color="white", width=2.5),
+            fillcolor="rgba(255,255,255,0.015)"
+        )
+
+        # 9-zone vertical lines
+        one_third_x = zone_left + (zone_right - zone_left) / 3
+        two_third_x = zone_left + 2 * (zone_right - zone_left) / 3
+
+        for x in [one_third_x, two_third_x]:
+            fig_loc.add_shape(
+                type="line",
+                x0=x,
+                x1=x,
+                y0=zone_bottom,
+                y1=zone_top,
+                line=dict(color="rgba(255,255,255,0.35)", width=1)
+            )
+
+        # 9-zone horizontal lines
+        one_third_y = zone_bottom + (zone_top - zone_bottom) / 3
+        two_third_y = zone_bottom + 2 * (zone_top - zone_bottom) / 3
+
+        for y in [one_third_y, two_third_y]:
+            fig_loc.add_shape(
+                type="line",
+                x0=zone_left,
+                x1=zone_right,
+                y0=y,
+                y1=y,
+                line=dict(color="rgba(255,255,255,0.35)", width=1)
+            )
+
+        # Home plate
+        plate_y = 0.85
+        plate_width = 1.0
+        plate_depth = 0.35
+
+        fig_loc.add_shape(
+            type="path",
+            path=f"""
+                M {-plate_width/2} {plate_y}
+                L {plate_width/2} {plate_y}
+                L {plate_width/2} {plate_y - plate_depth/2}
+                L 0 {plate_y - plate_depth}
+                L {-plate_width/2} {plate_y - plate_depth/2}
+                Z
+            """,
+            line=dict(color="rgba(255,255,255,0.75)", width=2),
+            fillcolor="rgba(255,255,255,0.06)"
+        )
+
+        # Center line
+        fig_loc.add_shape(
+            type="line",
+            x0=0,
+            x1=0,
+            y0=0.5,
+            y1=4.5,
+            line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot")
+        )
+
+        fig_loc.update_xaxes(
+            range=[-2.5, 2.5],
+            title="Horizontal Location",
+            zeroline=False
+        )
+
+        fig_loc.update_yaxes(
+            range=[0.5, 4.6],
+            title="Vertical Location",
+            zeroline=False
+        )
+
+        fig_loc = style_fig(fig_loc, height=430)
+
+        fig_loc.update_layout(
+            showlegend=True,
+            legend_title_text="Pitch Type"
+        )
+
         st.plotly_chart(fig_loc, use_container_width=True)
+
     else:
         st.info("Pitch location data not available.")
-
 with g2:
     st.markdown('<div class="section-title">Movement Profile</div>', unsafe_allow_html=True)
 
