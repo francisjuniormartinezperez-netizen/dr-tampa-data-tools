@@ -953,10 +953,65 @@ with g3:
 
 g4, g5, g6 = st.columns(3)
 
-with g4:
-    st.markdown('<div class="section-title">Velocity Trend</div>', unsafe_allow_html=True)
+g4, g5, g6 = st.columns(3)
 
-    if "RelSpeed" in filtered_df.columns and not filtered_df.empty:
+with g4:
+    st.markdown('<div class="section-title">Session Velocity Trend</div>', unsafe_allow_html=True)
+
+    if {"RelSpeed", "SessionDate"}.issubset(filtered_df.columns) and not filtered_df.empty:
+        trend_group_cols = ["SessionDate"]
+
+        if "SessionType" in filtered_df.columns:
+            trend_group_cols.append("SessionType")
+
+        if "TaggedPitchType" in filtered_df.columns:
+            trend_group_cols.append("TaggedPitchType")
+
+        velo_trend = (
+            filtered_df
+            .groupby(trend_group_cols)
+            .agg(
+                AvgVelo=("RelSpeed", "mean"),
+                MaxVelo=("RelSpeed", "max"),
+                Pitches=("RelSpeed", "count")
+            )
+            .reset_index()
+        )
+
+        velo_trend["AvgVelo"] = velo_trend["AvgVelo"].round(1)
+        velo_trend["MaxVelo"] = velo_trend["MaxVelo"].round(1)
+
+        fig_velo = px.line(
+            velo_trend,
+            x="SessionDate",
+            y="AvgVelo",
+            color="TaggedPitchType" if "TaggedPitchType" in velo_trend.columns else None,
+            markers=True,
+            color_discrete_map=pitch_colors,
+            hover_data=[
+                c for c in [
+                    "SessionType",
+                    "TaggedPitchType",
+                    "AvgVelo",
+                    "MaxVelo",
+                    "Pitches"
+                ] if c in velo_trend.columns
+            ]
+        )
+
+        fig_velo.update_traces(
+            line=dict(width=3),
+            marker=dict(size=8, line=dict(width=1, color=WHITE))
+        )
+
+        fig_velo.update_xaxes(title="Session Date")
+        fig_velo.update_yaxes(title="Average Velocity")
+
+        fig_velo = style_fig(fig_velo, height=410)
+
+        st.plotly_chart(fig_velo, use_container_width=True)
+
+    elif "RelSpeed" in filtered_df.columns and not filtered_df.empty:
         velo_df = filtered_df.reset_index(drop=True)
         velo_df["Pitch #"] = velo_df.index + 1
 
@@ -968,46 +1023,104 @@ with g4:
             color_discrete_map=pitch_colors,
             markers=True
         )
+
         fig_velo.update_traces(line=dict(width=2), marker=dict(size=4))
         fig_velo.update_xaxes(title="Pitch Number")
         fig_velo.update_yaxes(title="Velocity")
-        fig_velo = style_fig(fig_velo)
+
+        fig_velo = style_fig(fig_velo, height=410)
         st.plotly_chart(fig_velo, use_container_width=True)
+
     else:
         st.info("Velocity data not available.")
 
-with g5:
-    st.markdown('<div class="section-title">Velocity Distribution</div>', unsafe_allow_html=True)
 
-    if {"RelSpeed", "TaggedPitchType"}.issubset(filtered_df.columns) and not filtered_df.empty:
-        fig_box = px.box(
-            filtered_df,
-            x="TaggedPitchType",
-            y="RelSpeed",
-            color="TaggedPitchType",
+with g5:
+    st.markdown('<div class="section-title">Velocity Histogram</div>', unsafe_allow_html=True)
+
+    if "RelSpeed" in filtered_df.columns and not filtered_df.empty:
+        hist_df = filtered_df.copy()
+
+        fig_hist = px.histogram(
+            hist_df,
+            x="RelSpeed",
+            color="TaggedPitchType" if "TaggedPitchType" in hist_df.columns else None,
             color_discrete_map=pitch_colors,
-            points="all"
+            nbins=18,
+            opacity=0.85,
+            hover_data=[
+                c for c in [
+                    "TaggedPitchType",
+                    "PitchCall",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in hist_df.columns
+            ]
         )
-        fig_box.update_xaxes(title="")
-        fig_box.update_yaxes(title="Velocity")
-        fig_box = style_fig(fig_box)
-        st.plotly_chart(fig_box, use_container_width=True)
+
+        fig_hist.update_traces(
+            marker_line_color="rgba(255,255,255,0.35)",
+            marker_line_width=1
+        )
+
+        fig_hist.update_xaxes(title="Velocity")
+        fig_hist.update_yaxes(title="Pitch Count")
+
+        fig_hist = style_fig(fig_hist, height=410)
+
+        st.plotly_chart(fig_hist, use_container_width=True)
+
     else:
-        st.info("Velocity distribution not available.")
+        st.info("Velocity data not available.")
+
 
 with g6:
-    st.markdown('<div class="section-title">Pitch Call Distribution</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Velocity Percentiles</div>', unsafe_allow_html=True)
 
-    if "PitchCall" in filtered_df.columns and not filtered_df.empty:
-        call_counts = filtered_df["PitchCall"].value_counts().reset_index()
-        call_counts.columns = ["Pitch Call", "Count"]
-        fig_call = px.pie(call_counts, names="Pitch Call", values="Count", hole=0.60)
-        fig_call.update_traces(marker=dict(line=dict(color="#031B34", width=2)))
-        fig_call = style_fig(fig_call)
-        st.plotly_chart(fig_call, use_container_width=True)
+    if {"RelSpeed", "TaggedPitchType"}.issubset(filtered_df.columns) and not filtered_df.empty:
+        velo_percentiles = (
+            filtered_df
+            .groupby("TaggedPitchType")
+            .agg(
+                Pitches=("RelSpeed", "count"),
+                Avg=("RelSpeed", "mean"),
+                Max=("RelSpeed", "max"),
+                P90=("RelSpeed", lambda x: x.quantile(0.90)),
+                P75=("RelSpeed", lambda x: x.quantile(0.75)),
+                P50=("RelSpeed", lambda x: x.quantile(0.50)),
+            )
+            .reset_index()
+        )
+
+        for col in ["Avg", "Max", "P90", "P75", "P50"]:
+            velo_percentiles[col] = velo_percentiles[col].round(1)
+
+        st.dataframe(
+            velo_percentiles,
+            use_container_width=True,
+            height=410
+        )
+
+    elif "RelSpeed" in filtered_df.columns and not filtered_df.empty:
+        velo_percentiles = pd.DataFrame({
+            "Metric": ["Avg", "Max", "P90", "P75", "P50"],
+            "Velocity": [
+                round(filtered_df["RelSpeed"].mean(), 1),
+                round(filtered_df["RelSpeed"].max(), 1),
+                round(filtered_df["RelSpeed"].quantile(0.90), 1),
+                round(filtered_df["RelSpeed"].quantile(0.75), 1),
+                round(filtered_df["RelSpeed"].quantile(0.50), 1),
+            ]
+        })
+
+        st.dataframe(
+            velo_percentiles,
+            use_container_width=True,
+            height=410
+        )
+
     else:
-        st.info("Pitch call data not available.")
-
+        st.info("Velocity data not available.")
 # TABLE + VIDEO
 t1, t2 = st.columns([1.45, 1])
 
