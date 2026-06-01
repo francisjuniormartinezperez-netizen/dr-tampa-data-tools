@@ -2,13 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from pathlib import Path
+from PIL import Image
 import numpy as np
 import re
 
-st.set_page_config(
-    page_title="INTERNATIONAL SCOUTING & PLAYER DEVELOPMENT",
-    layout="wide"
-)
+st.set_page_config(page_title="INTERNATIONAL SCOUTING & PLAYER DEVELOPMENT", layout="wide")
 
 BASE_DIR = Path(".")
 ASSETS_DIR = BASE_DIR / "assets"
@@ -19,6 +17,8 @@ ASSETS_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 VIDEOS_DIR.mkdir(exist_ok=True)
 
+LOGO_PATH = ASSETS_DIR / "Tampa_logo.gif"
+
 NAVY = "#021426"
 PANEL = "#061F35"
 TEXT = "#EAF4FF"
@@ -26,21 +26,11 @@ MUTED = "#A9BDD0"
 BLUE = "#8FD3FF"
 WHITE = "#FFFFFF"
 
-LOGO_OPTIONS = [
-    ASSETS_DIR / "Tampa_logo.gif",
-    ASSETS_DIR / "Tampa_logo.png",
-    ASSETS_DIR / "tampa_logo.png",
-    ASSETS_DIR / "logo.png",
-    ASSETS_DIR / "logo.gif",
-]
-
 pitch_colors = {
     "Fastball": "#FF3333",
     "FourSeamFastBall": "#FF3333",
     "4-Seam Fastball": "#FF3333",
-    "Four-Seam": "#FF3333",
     "Sinker": "#FF8C00",
-    "TwoSeamFastBall": "#FF8C00",
     "Slider": "#2DA8FF",
     "Sweeper": "#31C4FF",
     "Curveball": "#9B59D0",
@@ -209,13 +199,6 @@ def clean_name(name):
     return re.sub(r'[^A-Za-z0-9_-]+', '_', str(name).strip())
 
 
-def find_logo():
-    for logo in LOGO_OPTIONS:
-        if logo.exists():
-            return logo
-    return None
-
-
 def metric_box(label, value, unit=""):
     st.markdown(f"""
     <div class="metric-panel">
@@ -321,10 +304,11 @@ def make_demo_data():
 
 def detect_session_date(file_name, df):
     date_from_name = re.search(r"(20\d{2}-\d{2}-\d{2})", file_name)
+
     if date_from_name:
         return date_from_name.group(1)
 
-    if "Date" in df.columns and not df.empty:
+    if "Date" in df.columns:
         try:
             return pd.to_datetime(df["Date"].iloc[0]).strftime("%Y-%m-%d")
         except Exception:
@@ -348,6 +332,7 @@ def detect_session_type(file_name):
 
 def load_all_trackman_csvs():
     csv_files = sorted(DATA_DIR.glob("*.csv"))
+
     all_data = []
 
     for file in csv_files:
@@ -379,18 +364,17 @@ def safe_metric(df, col, func="mean", decimals=1):
 
 
 # HEADER
-logo_path = find_logo()
-
-if logo_path:
+if LOGO_PATH.exists():
+    logo = Image.open(LOGO_PATH)
     c1, c2, c3 = st.columns([1.25, 2.5, 1.25])
     with c2:
-        st.image(str(logo_path), use_container_width=True)
+        st.image(logo, use_container_width=True)
 else:
-    st.error("Logo not found. Put your logo inside assets/ as Tampa_logo.gif or Tampa_logo.png")
+    st.error("Logo not found. Put your logo here: assets/Tampa_logo.png")
 
 st.markdown("""
 <div class="header-title">INTERNATIONAL SCOUTING & PLAYER DEVELOPMENT</div>
-<div class="header-subtitle">DOMINICAN REPUBLIC OPERATIONS &nbsp; | &nbsp; TRACKMAN • VIDEO • SCOUTING • DEVELOPMENT</div>
+<div class="header-subtitle">DOMINICAN REPUBLIC OPERATIONS &nbsp; | &nbsp; FRANCIS MARTINEZ • VIDEO • SCOUTING • DEVELOPMENT </div>
 """, unsafe_allow_html=True)
 
 st.markdown("<hr>", unsafe_allow_html=True)
@@ -403,7 +387,246 @@ csv_files = sorted(DATA_DIR.glob("*.csv"))
 st.sidebar.markdown("## Player Evaluation")
 st.sidebar.markdown("Dominican Republic Operations")
 st.sidebar.markdown("---")
+# PLAYER TYPE MODULE
+player_type = st.sidebar.radio(
+    "Player Type",
+    ["Pitchers", "Hitters"]
+)
 
+# =========================
+# HITTER MODULE
+# =========================
+if player_type == "Hitters":
+
+    if "Batter" not in df.columns:
+        st.warning("No encontré columna 'Batter' en el CSV. Para usar el módulo de bateadores, el CSV debe tener una columna llamada Batter.")
+        st.stop()
+
+    hitters = sorted(df["Batter"].dropna().astype(str).unique())
+    selected_hitter = st.sidebar.selectbox("Select Hitter", hitters)
+
+    hitter_df = df[df["Batter"].astype(str) == str(selected_hitter)].copy()
+
+    def find_col(possible_names):
+        for col in possible_names:
+            if col in hitter_df.columns:
+                return col
+        return None
+
+    ev_col = find_col(["ExitSpeed", "ExitVelocity", "ExitVelo", "ExitVel"])
+    la_col = find_col(["Angle", "LaunchAngle", "Launch Angle"])
+    distance_col = find_col(["Distance", "HitDistance", "CarryDistance"])
+    bearing_col = find_col(["Bearing", "Direction", "HitDirection"])
+    hit_type_col = find_col(["TaggedHitType", "HitType", "BattedBallType"])
+    result_col = find_col(["PlayResult", "Result", "PitchCall"])
+
+    st.markdown('<div class="section-title">Hitter Profile</div>', unsafe_allow_html=True)
+
+    left, right = st.columns([1.1, 2.9])
+
+    with left:
+        initials = "".join([x[:1] for x in str(selected_hitter).split()[:2]]).upper()
+
+        st.markdown(f"""
+        <div class="panel">
+            <div style="display:flex; gap:18px; align-items:center;">
+                <div style="
+                    width:105px; height:105px; border-radius:50%;
+                    background:linear-gradient(180deg,#9FD6FF,#5C9DCE);
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:34px; font-weight:800; color:white;">
+                    {initials}
+                </div>
+                <div>
+                    <div class="player-name">{str(selected_hitter).upper()}</div>
+                    <div class="player-meta">Hitter &nbsp; | &nbsp; Dominican Republic</div>
+                </div>
+            </div>
+            <hr>
+            <div class="summary-text">
+                Offensive evaluation module focused on exit velocity, launch angle,
+                spray direction, batted ball quality and contact profile.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with right:
+        st.markdown('<div class="section-title">Batted Ball Summary</div>', unsafe_allow_html=True)
+
+        c1, c2, c3, c4, c5 = st.columns(5)
+
+        bbe = len(hitter_df)
+
+        avg_ev = round(hitter_df[ev_col].mean(), 1) if ev_col else "-"
+        max_ev = round(hitter_df[ev_col].max(), 1) if ev_col else "-"
+        avg_la = round(hitter_df[la_col].mean(), 1) if la_col else "-"
+
+        if ev_col:
+            hard_hit = round((hitter_df[ev_col] >= 95).mean() * 100, 1)
+        else:
+            hard_hit = "-"
+
+        if la_col:
+            sweet_spot = round(hitter_df[la_col].between(8, 32).mean() * 100, 1)
+        else:
+            sweet_spot = "-"
+
+        with c1:
+            metric_box("Batted Balls", bbe, "")
+        with c2:
+            metric_box("Avg EV", avg_ev, "mph")
+        with c3:
+            metric_box("Max EV", max_ev, "mph")
+        with c4:
+            metric_box("Avg LA", avg_la, "deg")
+        with c5:
+            metric_box("Hard Hit %", hard_hit, "%")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    h1, h2 = st.columns(2)
+
+    with h1:
+        st.markdown('<div class="section-title">Exit Velocity vs Launch Angle</div>', unsafe_allow_html=True)
+
+        if ev_col and la_col:
+            fig_ev_la = px.scatter(
+                hitter_df,
+                x=la_col,
+                y=ev_col,
+                color=hit_type_col if hit_type_col else None,
+                hover_data=[c for c in ["Batter", "Pitcher", "PitchCall", "PlayResult", "TaggedHitType", "Distance"] if c in hitter_df.columns]
+            )
+
+            fig_ev_la.add_shape(
+                type="rect",
+                x0=8,
+                x1=32,
+                y0=95,
+                y1=max(120, hitter_df[ev_col].max() + 5),
+                line=dict(color="rgba(143,211,255,0.6)", width=2),
+                fillcolor="rgba(143,211,255,0.07)"
+            )
+
+            fig_ev_la.update_xaxes(title="Launch Angle", range=[-40, 60])
+            fig_ev_la.update_yaxes(title="Exit Velocity", range=[40, max(120, hitter_df[ev_col].max() + 5)])
+
+            fig_ev_la = style_fig(fig_ev_la, height=430)
+            st.plotly_chart(fig_ev_la, use_container_width=True)
+        else:
+            st.info("Necesito columnas de Exit Velocity y Launch Angle.")
+
+    with h2:
+        st.markdown('<div class="section-title">Spray Chart</div>', unsafe_allow_html=True)
+
+        if bearing_col and distance_col:
+            spray_df = hitter_df.copy()
+
+            fig_spray = px.scatter(
+                spray_df,
+                x=bearing_col,
+                y=distance_col,
+                color=hit_type_col if hit_type_col else None,
+                hover_data=[c for c in ["Batter", "ExitSpeed", "Angle", "PlayResult", "TaggedHitType"] if c in spray_df.columns]
+            )
+
+            fig_spray.update_xaxes(title="Spray Direction / Bearing")
+            fig_spray.update_yaxes(title="Distance")
+
+            fig_spray = style_fig(fig_spray, height=430)
+            st.plotly_chart(fig_spray, use_container_width=True)
+        else:
+            st.info("Para Spray Chart necesito columnas tipo Bearing/Direction y Distance/HitDistance.")
+
+    h3, h4 = st.columns(2)
+
+    with h3:
+        st.markdown('<div class="section-title">Contact Quality</div>', unsafe_allow_html=True)
+
+        if hit_type_col:
+            agg = {"Batted Balls": (hit_type_col, "count")}
+
+            if ev_col:
+                agg["Avg EV"] = (ev_col, "mean")
+                agg["Max EV"] = (ev_col, "max")
+
+            if la_col:
+                agg["Avg LA"] = (la_col, "mean")
+
+            contact_table = (
+                hitter_df
+                .groupby(hit_type_col)
+                .agg(**agg)
+                .reset_index()
+            )
+
+            for col in contact_table.columns:
+                if col not in [hit_type_col, "Batted Balls"]:
+                    contact_table[col] = contact_table[col].round(1)
+
+            st.dataframe(contact_table, use_container_width=True, height=330)
+        else:
+            st.info("No encontré columna de tipo de batazo.")
+
+    with h4:
+        st.markdown('<div class="section-title">Result Distribution</div>', unsafe_allow_html=True)
+
+        if result_col:
+            result_counts = hitter_df[result_col].value_counts().reset_index()
+            result_counts.columns = ["Result", "Count"]
+
+            fig_result = px.pie(
+                result_counts,
+                names="Result",
+                values="Count",
+                hole=0.60
+            )
+
+            fig_result.update_traces(marker=dict(line=dict(color="#031B34", width=2)))
+            fig_result = style_fig(fig_result, height=330)
+            st.plotly_chart(fig_result, use_container_width=True)
+        else:
+            st.info("No encontré columna de resultado.")
+
+    t1, t2 = st.columns([1.45, 1])
+
+    with t1:
+        st.markdown('<div class="section-title">Full Hitter Data</div>', unsafe_allow_html=True)
+
+        hitter_cols = [c for c in [
+            "Date", "Batter", "Pitcher", "TaggedHitType", "PlayResult",
+            "ExitSpeed", "ExitVelocity", "Angle", "LaunchAngle",
+            "Bearing", "Direction", "Distance", "HitDistance",
+            "PitchCall", "TaggedPitchType"
+        ] if c in hitter_df.columns]
+
+        st.dataframe(
+            hitter_df[hitter_cols] if hitter_cols else hitter_df,
+            use_container_width=True,
+            height=340
+        )
+
+    with t2:
+        st.markdown('<div class="section-title">Video Library</div>', unsafe_allow_html=True)
+
+        hitter_folder = VIDEOS_DIR / clean_name(selected_hitter)
+        hitter_folder.mkdir(exist_ok=True)
+
+        video_files = list(hitter_folder.glob("*.mp4")) + list(hitter_folder.glob("*.mov"))
+
+        if video_files:
+            for video in video_files:
+                st.video(str(video))
+                st.caption(video.name)
+        else:
+            st.info("No videos uploaded for this hitter.")
+
+    st.markdown(
+        "<div class='footer'>HITTER EVALUATION MODULE v1.0 &nbsp; | &nbsp; CONFIDENTIAL — FOR INTERNAL USE ONLY</div>",
+        unsafe_allow_html=True
+    )
+
+    st.stop()
 if "Pitcher" in df.columns:
     players = sorted(df["Pitcher"].dropna().astype(str).unique())
 else:
@@ -452,8 +675,12 @@ if pitch_filter != "All" and "TaggedPitchType" in filtered_df.columns:
 
 if call_filter != "All" and "PitchCall" in filtered_df.columns:
     filtered_df = filtered_df[filtered_df["PitchCall"].astype(str) == call_filter]
+# -------------------------
+# SESSION VIEW
+# -------------------------
 
 with st.expander("Session View", expanded=True):
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -465,27 +692,52 @@ with st.expander("Session View", expanded=True):
 
     with col2:
         if "SessionDate" in filtered_df.columns:
-            session_dates_expander = ["All"] + sorted(filtered_df["SessionDate"].dropna().astype(str).unique())
-            selected_session_date = st.selectbox("Session Date", session_dates_expander)
+            session_dates = ["All"] + sorted(
+                filtered_df["SessionDate"].dropna().astype(str).unique()
+            )
+
+            selected_session_date = st.selectbox(
+                "Session Date",
+                session_dates
+            )
         else:
             selected_session_date = "All"
 
     with col3:
         if "SourceFile" in filtered_df.columns:
-            source_files = ["All"] + sorted(filtered_df["SourceFile"].dropna().astype(str).unique())
-            selected_source_file = st.selectbox("Source File", source_files)
+            source_files = ["All"] + sorted(
+                filtered_df["SourceFile"].dropna().astype(str).unique()
+            )
+
+            selected_source_file = st.selectbox(
+                "Source File",
+                source_files
+            )
         else:
             selected_source_file = "All"
 
 if session_view != "All Sessions" and "SessionType" in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df["SessionType"] == session_view]
+    filtered_df = filtered_df[
+        filtered_df["SessionType"] == session_view
+    ]
 
 if selected_session_date != "All" and "SessionDate" in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df["SessionDate"].astype(str) == selected_session_date]
+    filtered_df = filtered_df[
+        filtered_df["SessionDate"].astype(str)
+        == selected_session_date
+    ]
 
 if selected_source_file != "All" and "SourceFile" in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df["SourceFile"].astype(str) == selected_source_file]
+    filtered_df = filtered_df[
+        filtered_df["SourceFile"].astype(str)
+        == selected_source_file
+    ]
 
+# -------------------------
+# DATA SOURCE
+# -------------------------
+
+st.sidebar.markdown("### Data Source")
 st.sidebar.markdown("### Data Source")
 
 if csv_files:
@@ -503,69 +755,47 @@ st.sidebar.download_button(
     file_name=f"{clean_name(selected_player)}_filtered_trackman.csv",
     mime="text/csv"
 )
-
 # PLAYER BOARD
 st.markdown('<div class="section-title">Player Board</div>', unsafe_allow_html=True)
 
 if "Pitcher" in df.columns:
     board = df.groupby("Pitcher").agg(
-        Pitches=("Pitcher", "count"),
+        TotalPitches=("Pitcher", "count"),
+        AvgVelo=("RelSpeed", "mean") if "RelSpeed" in df.columns else ("Pitcher", "count"),
+        MaxVelo=("RelSpeed", "max") if "RelSpeed" in df.columns else ("Pitcher", "count"),
         LatestSession=("SessionDate", "max") if "SessionDate" in df.columns else ("Pitcher", "count"),
     ).reset_index()
 
-    if "RelSpeed" in df.columns:
-        velo_board = df.groupby("Pitcher").agg(
-            AvgVelo=("RelSpeed", "mean"),
-            MaxVelo=("RelSpeed", "max")
-        ).reset_index()
-        board = board.merge(velo_board, on="Pitcher", how="left")
-        board["AvgVelo"] = board["AvgVelo"].round(1)
-        board["MaxVelo"] = board["MaxVelo"].round(1)
-
     if "PitchCall" in df.columns:
         strike_calls = ["StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay"]
-        strike_board = (
+
+        strike_df = (
             df.assign(IsStrike=df["PitchCall"].isin(strike_calls))
             .groupby("Pitcher")
             .agg(StrikePct=("IsStrike", "mean"))
             .reset_index()
         )
-        strike_board["StrikePct"] = (strike_board["StrikePct"] * 100).round(1)
-        board = board.merge(strike_board, on="Pitcher", how="left")
 
-    def auto_status(row):
-        max_velo = row.get("MaxVelo", 0)
-        strike_pct = row.get("StrikePct", 0)
+        strike_df["StrikePct"] = (strike_df["StrikePct"] * 100).round(1)
+        board = board.merge(strike_df, on="Pitcher", how="left")
 
-        if pd.isna(max_velo):
-            max_velo = 0
-        if pd.isna(strike_pct):
-            strike_pct = 0
-
-        if max_velo >= 94 and strike_pct >= 62:
-            return "Priority"
-        elif max_velo >= 91 and strike_pct >= 58:
-            return "Follow"
-        elif max_velo >= 88:
-            return "Area Check"
-        else:
-            return "Monitor"
-
-    board["Status"] = board.apply(auto_status, axis=1)
+    if "RelSpeed" in df.columns:
+        board["AvgVelo"] = board["AvgVelo"].round(1)
+        board["MaxVelo"] = board["MaxVelo"].round(1)
 
     board = board.rename(columns={
         "Pitcher": "Player",
-        "LatestSession": "Latest Session",
+        "TotalPitches": "Pitches",
         "AvgVelo": "Avg Velo",
         "MaxVelo": "Max Velo",
+        "LatestSession": "Latest Session",
         "StrikePct": "Strike %"
     })
 
-    display_cols = [c for c in ["Player", "Status", "Pitches", "Avg Velo", "Max Velo", "Strike %", "Latest Session"] if c in board.columns]
-    st.dataframe(board[display_cols], use_container_width=True, height=260)
+    st.dataframe(board, use_container_width=True, height=260)
+
 else:
     st.info("Player Board will appear when the CSV has a Pitcher column.")
-
 # TOP DASHBOARD
 dash1, dash2, dash3, dash4, dash5 = st.columns(5)
 
@@ -578,7 +808,10 @@ with dash3:
 with dash4:
     metric_box("Videos Available", len(list(VIDEOS_DIR.glob('**/*.mp4'))), "")
 with dash5:
-    metric_box("Sessions Logged", df["SessionDate"].nunique() if "SessionDate" in df.columns else "-", "")
+    if "SessionDate" in df.columns:
+        metric_box("Sessions Logged", df["SessionDate"].nunique(), "")
+    else:
+        metric_box("Sessions Logged", "-", "")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -586,10 +819,12 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown('<div class="section-title">Session History</div>', unsafe_allow_html=True)
 
 if {"Pitcher", "SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
-    group_cols = ["Pitcher", "SessionDate", "SessionType", "SourceFile"]
-    agg_dict = {"Pitches": ("Pitcher", "count")}
 
-    temp_sessions = df.copy()
+    group_cols = ["Pitcher", "SessionDate", "SessionType", "SourceFile"]
+
+    agg_dict = {
+        "Pitches": ("Pitcher", "count")
+    }
 
     if "RelSpeed" in df.columns:
         agg_dict["Avg Velo"] = ("RelSpeed", "mean")
@@ -597,8 +832,13 @@ if {"Pitcher", "SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
 
     if "PitchCall" in df.columns:
         strike_calls = ["StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay"]
+
+        temp_sessions = df.copy()
         temp_sessions["IsStrike"] = temp_sessions["PitchCall"].isin(strike_calls)
+
         agg_dict["Strike %"] = ("IsStrike", "mean")
+    else:
+        temp_sessions = df.copy()
 
     sessions = (
         temp_sessions
@@ -624,15 +864,30 @@ if {"Pitcher", "SessionDate", "SessionType", "SourceFile"}.issubset(df.columns):
         "SourceFile": "File"
     })
 
-    display_cols = [c for c in ["Player", "Date", "Type", "Pitches", "Avg Velo", "Max Velo", "Strike %", "File"] if c in sessions.columns]
-    st.dataframe(sessions[display_cols], use_container_width=True, height=260)
+    preferred_cols = [
+        "Player",
+        "Date",
+        "Type",
+        "Pitches",
+        "Avg Velo",
+        "Max Velo",
+        "Strike %",
+        "File"
+    ]
+
+    display_cols = [c for c in preferred_cols if c in sessions.columns]
+
+    st.dataframe(
+        sessions[display_cols],
+        use_container_width=True,
+        height=260
+    )
+
 else:
-    st.info("Session history will appear when CSV files are loaded inside the Data folder.")
-
-st.markdown("<br>", unsafe_allow_html=True)
-
+    st.info("Session history will appear when CSV files are loaded inside the Data folder.")rr
 # PLAYER PROFILE + TRACKMAN SUMMARY
-left, right = st.columns([1.12, 2.88])
+with tab_overview:
+    left, right = st.columns([1.12, 2.88])
 
 with left:
     st.markdown('<div class="section-title">Player Profile</div>', unsafe_allow_html=True)
@@ -755,7 +1010,7 @@ with right:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# CHARTS ROW 1
+# CHARTS
 g1, g2, g3 = st.columns(3)
 
 with g1:
@@ -768,11 +1023,28 @@ with g1:
             y="PlateLocHeight",
             color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["PitchNo", "TaggedPitchType", "PitchCall", "RelSpeed", "SpinRate", "SessionDate", "SessionType"] if c in filtered_df.columns]
+            hover_data=[
+                c for c in [
+                    "PitchNo",
+                    "TaggedPitchType",
+                    "PitchCall",
+                    "RelSpeed",
+                    "SpinRate",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in filtered_df.columns
+            ]
         )
 
-        fig_loc.update_traces(marker=dict(size=8, opacity=0.88, line=dict(width=0.6, color="white")))
+        fig_loc.update_traces(
+            marker=dict(
+                size=8,
+                opacity=0.88,
+                line=dict(width=0.6, color="white")
+            )
+        )
 
+        # Strike zone outer box
         zone_left = -0.83
         zone_right = 0.83
         zone_bottom = 1.5
@@ -788,6 +1060,7 @@ with g1:
             fillcolor="rgba(255,255,255,0.015)"
         )
 
+        # 9-zone vertical lines
         one_third_x = zone_left + (zone_right - zone_left) / 3
         two_third_x = zone_left + 2 * (zone_right - zone_left) / 3
 
@@ -801,6 +1074,7 @@ with g1:
                 line=dict(color="rgba(255,255,255,0.35)", width=1)
             )
 
+        # 9-zone horizontal lines
         one_third_y = zone_bottom + (zone_top - zone_bottom) / 3
         two_third_y = zone_bottom + 2 * (zone_top - zone_bottom) / 3
 
@@ -814,6 +1088,7 @@ with g1:
                 line=dict(color="rgba(255,255,255,0.35)", width=1)
             )
 
+        # Home plate
         plate_y = 0.85
         plate_width = 1.0
         plate_depth = 0.35
@@ -832,6 +1107,7 @@ with g1:
             fillcolor="rgba(255,255,255,0.06)"
         )
 
+        # Center line
         fig_loc.add_shape(
             type="line",
             x0=0,
@@ -841,15 +1117,29 @@ with g1:
             line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot")
         )
 
-        fig_loc.update_xaxes(range=[-2.5, 2.5], title="Horizontal Location", zeroline=False)
-        fig_loc.update_yaxes(range=[0.5, 4.6], title="Vertical Location", zeroline=False)
+        fig_loc.update_xaxes(
+            range=[-2.5, 2.5],
+            title="Horizontal Location",
+            zeroline=False
+        )
+
+        fig_loc.update_yaxes(
+            range=[0.5, 4.6],
+            title="Vertical Location",
+            zeroline=False
+        )
 
         fig_loc = style_fig(fig_loc, height=430)
-        fig_loc.update_layout(showlegend=True, legend_title_text="Pitch Type")
+
+        fig_loc.update_layout(
+            showlegend=True,
+            legend_title_text="Pitch Type"
+        )
+
         st.plotly_chart(fig_loc, use_container_width=True)
+
     else:
         st.info("Pitch location data not available.")
-
 with g2:
     st.markdown('<div class="section-title">Movement Profile</div>', unsafe_allow_html=True)
 
@@ -860,18 +1150,92 @@ with g2:
             y="InducedVertBreak",
             color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["PitchNo", "TaggedPitchType", "RelSpeed", "SpinRate", "SessionDate", "SessionType"] if c in filtered_df.columns]
+            hover_data=[
+                c for c in [
+                    "PitchNo",
+                    "TaggedPitchType",
+                    "RelSpeed",
+                    "SpinRate",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in filtered_df.columns
+            ]
         )
 
-        fig_move.update_traces(marker=dict(size=8, opacity=0.90, line=dict(width=0.6, color=WHITE)))
+        fig_move.update_traces(
+            marker=dict(
+                size=8,
+                opacity=0.90,
+                line=dict(width=0.6, color=WHITE)
+            )
+        )
 
-        fig_move.add_shape(type="line", x0=-25, x1=25, y0=0, y1=0, line=dict(color="rgba(255,255,255,0.55)", width=2))
-        fig_move.add_shape(type="line", x0=0, x1=0, y0=-25, y1=25, line=dict(color="rgba(255,255,255,0.55)", width=2))
+        # Plano cartesiano
+        fig_move.add_shape(
+            type="line",
+            x0=-25,
+            x1=25,
+            y0=0,
+            y1=0,
+            line=dict(color="rgba(255,255,255,0.55)", width=2)
+        )
 
-        fig_move.update_xaxes(title="Horizontal Break", range=[-25, 25], zeroline=False)
-        fig_move.update_yaxes(title="Induced Vertical Break", range=[-25, 25], zeroline=False)
+        fig_move.add_shape(
+            type="line",
+            x0=0,
+            x1=0,
+            y0=-25,
+            y1=25,
+            line=dict(color="rgba(255,255,255,0.55)", width=2)
+        )
 
-        fig_move = style_fig(fig_move, height=430)
+        # Cuadrantes sutiles
+        fig_move.add_shape(
+            type="rect",
+            x0=0, x1=25, y0=0, y1=25,
+            fillcolor="rgba(143,211,255,0.04)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.add_shape(
+            type="rect",
+            x0=-25, x1=0, y0=0, y1=25,
+            fillcolor="rgba(255,255,255,0.025)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.add_shape(
+            type="rect",
+            x0=-25, x1=0, y0=-25, y1=0,
+            fillcolor="rgba(143,211,255,0.04)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.add_shape(
+            type="rect",
+            x0=0, x1=25, y0=-25, y1=0,
+            fillcolor="rgba(255,255,255,0.025)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.update_xaxes(
+            title="Horizontal Break",
+            range=[-25, 25],
+            zeroline=False
+        )
+
+        fig_move.update_yaxes(
+            title="Induced Vertical Break",
+            range=[-25, 25],
+            zeroline=False
+        )
+
+        fig_move = style_fig(fig_move)
+
         st.plotly_chart(fig_move, use_container_width=True)
     else:
         st.info("Movement data not available.")
@@ -886,17 +1250,49 @@ with g3:
             y="RelHeight",
             color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["PitchNo", "TaggedPitchType", "PitchCall", "RelSpeed", "SessionDate", "SessionType"] if c in filtered_df.columns]
+            hover_data=[
+                c for c in [
+                    "PitchNo",
+                    "TaggedPitchType",
+                    "PitchCall",
+                    "RelSpeed",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in filtered_df.columns
+            ]
         )
 
-        fig_rel.update_traces(marker=dict(size=8, opacity=0.88, line=dict(width=0.6, color="white")))
+        fig_rel.update_traces(
+            marker=dict(
+                size=8,
+                opacity=0.88,
+                line=dict(width=0.6, color="white")
+            )
+        )
 
         avg_side = filtered_df["RelSide"].mean()
         avg_height = filtered_df["RelHeight"].mean()
 
-        fig_rel.add_shape(type="line", x0=avg_side, x1=avg_side, y0=4.0, y1=7.5, line=dict(color="rgba(255,255,255,0.55)", width=2, dash="dash"))
-        fig_rel.add_shape(type="line", x0=-3.5, x1=3.5, y0=avg_height, y1=avg_height, line=dict(color="rgba(255,255,255,0.55)", width=2, dash="dash"))
+        # Average release lines
+        fig_rel.add_shape(
+            type="line",
+            x0=avg_side,
+            x1=avg_side,
+            y0=4.0,
+            y1=7.5,
+            line=dict(color="rgba(255,255,255,0.55)", width=2, dash="dash")
+        )
 
+        fig_rel.add_shape(
+            type="line",
+            x0=-3.5,
+            x1=3.5,
+            y0=avg_height,
+            y1=avg_height,
+            line=dict(color="rgba(255,255,255,0.55)", width=2, dash="dash")
+        )
+
+        # Consistency box around average
         fig_rel.add_shape(
             type="rect",
             x0=avg_side - 0.35,
@@ -907,16 +1303,52 @@ with g3:
             fillcolor="rgba(143,211,255,0.08)"
         )
 
-        fig_rel.update_xaxes(range=[-3.5, 3.5], title="Release Side", zeroline=False)
-        fig_rel.update_yaxes(range=[4.0, 7.5], title="Release Height", zeroline=False)
+        fig_rel.update_xaxes(
+            range=[-3.5, 3.5],
+            title="Release Side",
+            zeroline=False
+        )
+
+        fig_rel.update_yaxes(
+            range=[4.0, 7.5],
+            title="Release Height",
+            zeroline=False
+        )
 
         fig_rel = style_fig(fig_rel, height=430)
-        fig_rel.update_layout(showlegend=True, legend_title_text="Pitch Type")
+
+        fig_rel.update_layout(
+            showlegend=True,
+            legend_title_text="Pitch Type"
+        )
+
         st.plotly_chart(fig_rel, use_container_width=True)
+
+        # Release consistency table
+        if "TaggedPitchType" in filtered_df.columns:
+            rel_table = (
+                filtered_df
+                .groupby("TaggedPitchType")
+                .agg(
+                    Pitches=("TaggedPitchType", "count"),
+                    AvgRelSide=("RelSide", "mean"),
+                    AvgRelHeight=("RelHeight", "mean"),
+                    RelSideSTD=("RelSide", "std"),
+                    RelHeightSTD=("RelHeight", "std")
+                )
+                .reset_index()
+            )
+
+            for col in ["AvgRelSide", "AvgRelHeight", "RelSideSTD", "RelHeightSTD"]:
+                rel_table[col] = rel_table[col].round(2)
+
+            st.dataframe(rel_table, use_container_width=True, height=180)
+
     else:
         st.info("Release data not available.")
 
-# CHARTS ROW 2
+g4, g5, g6 = st.columns(3)
+
 g4, g5, g6 = st.columns(3)
 
 with g4:
@@ -952,39 +1384,91 @@ with g4:
             color="TaggedPitchType" if "TaggedPitchType" in velo_trend.columns else None,
             markers=True,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["SessionType", "TaggedPitchType", "AvgVelo", "MaxVelo", "Pitches"] if c in velo_trend.columns]
+            hover_data=[
+                c for c in [
+                    "SessionType",
+                    "TaggedPitchType",
+                    "AvgVelo",
+                    "MaxVelo",
+                    "Pitches"
+                ] if c in velo_trend.columns
+            ]
         )
 
-        fig_velo.update_traces(line=dict(width=3), marker=dict(size=8, line=dict(width=1, color=WHITE)))
+        fig_velo.update_traces(
+            line=dict(width=3),
+            marker=dict(size=8, line=dict(width=1, color=WHITE))
+        )
+
         fig_velo.update_xaxes(title="Session Date")
         fig_velo.update_yaxes(title="Average Velocity")
 
         fig_velo = style_fig(fig_velo, height=410)
+
         st.plotly_chart(fig_velo, use_container_width=True)
+
+    elif "RelSpeed" in filtered_df.columns and not filtered_df.empty:
+        velo_df = filtered_df.reset_index(drop=True)
+        velo_df["Pitch #"] = velo_df.index + 1
+
+        fig_velo = px.line(
+            velo_df,
+            x="Pitch #",
+            y="RelSpeed",
+            color="TaggedPitchType" if "TaggedPitchType" in velo_df.columns else None,
+            color_discrete_map=pitch_colors,
+            markers=True
+        )
+
+        fig_velo.update_traces(line=dict(width=2), marker=dict(size=4))
+        fig_velo.update_xaxes(title="Pitch Number")
+        fig_velo.update_yaxes(title="Velocity")
+
+        fig_velo = style_fig(fig_velo, height=410)
+        st.plotly_chart(fig_velo, use_container_width=True)
+
     else:
-        st.info("Velocity trend data not available.")
+        st.info("Velocity data not available.")
+
 
 with g5:
     st.markdown('<div class="section-title">Velocity Histogram</div>', unsafe_allow_html=True)
 
     if "RelSpeed" in filtered_df.columns and not filtered_df.empty:
+        hist_df = filtered_df.copy()
+
         fig_hist = px.histogram(
-            filtered_df,
+            hist_df,
             x="RelSpeed",
-            color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
+            color="TaggedPitchType" if "TaggedPitchType" in hist_df.columns else None,
             color_discrete_map=pitch_colors,
             nbins=18,
             opacity=0.85,
+            hover_data=[
+                c for c in [
+                    "TaggedPitchType",
+                    "PitchCall",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in hist_df.columns
+            ]
         )
 
-        fig_hist.update_traces(marker_line_color="rgba(255,255,255,0.35)", marker_line_width=1)
+        fig_hist.update_traces(
+            marker_line_color="rgba(255,255,255,0.35)",
+            marker_line_width=1
+        )
+
         fig_hist.update_xaxes(title="Velocity")
         fig_hist.update_yaxes(title="Pitch Count")
 
         fig_hist = style_fig(fig_hist, height=410)
+
         st.plotly_chart(fig_hist, use_container_width=True)
+
     else:
         st.info("Velocity data not available.")
+
 
 with g6:
     st.markdown('<div class="section-title">Velocity Percentiles</div>', unsafe_allow_html=True)
@@ -1007,10 +1491,32 @@ with g6:
         for col in ["Avg", "Max", "P90", "P75", "P50"]:
             velo_percentiles[col] = velo_percentiles[col].round(1)
 
-        st.dataframe(velo_percentiles, use_container_width=True, height=410)
-    else:
-        st.info("Velocity percentile data not available.")
+        st.dataframe(
+            velo_percentiles,
+            use_container_width=True,
+            height=410
+        )
 
+    elif "RelSpeed" in filtered_df.columns and not filtered_df.empty:
+        velo_percentiles = pd.DataFrame({
+            "Metric": ["Avg", "Max", "P90", "P75", "P50"],
+            "Velocity": [
+                round(filtered_df["RelSpeed"].mean(), 1),
+                round(filtered_df["RelSpeed"].max(), 1),
+                round(filtered_df["RelSpeed"].quantile(0.90), 1),
+                round(filtered_df["RelSpeed"].quantile(0.75), 1),
+                round(filtered_df["RelSpeed"].quantile(0.50), 1),
+            ]
+        })
+
+        st.dataframe(
+            velo_percentiles,
+            use_container_width=True,
+            height=410
+        )
+
+    else:
+        st.info("Velocity data not available.")
 # TABLE + VIDEO
 t1, t2 = st.columns([1.45, 1])
 
@@ -1042,6 +1548,6 @@ with t2:
         st.info("No videos uploaded for this player.")
 
 st.markdown(
-    "<div class='footer'>PLAYER EVALUATION PLATFORM v1.2 &nbsp; | &nbsp; CONFIDENTIAL — FOR INTERNAL USE ONLY</div>",
+    "<div class='footer'>PLAYER EVALUATION PLATFORM v1.1 &nbsp; | &nbsp; CONFIDENTIAL — FOR INTERNAL USE ONLY</div>",
     unsafe_allow_html=True
 )
