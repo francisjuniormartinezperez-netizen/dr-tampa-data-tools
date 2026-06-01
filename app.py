@@ -648,12 +648,92 @@ with g2:
             y="InducedVertBreak",
             color="TaggedPitchType" if "TaggedPitchType" in filtered_df.columns else None,
             color_discrete_map=pitch_colors,
-            hover_data=[c for c in ["PitchNo", "TaggedPitchType", "RelSpeed", "SpinRate", "SessionDate", "SessionType"] if c in filtered_df.columns]
+            hover_data=[
+                c for c in [
+                    "PitchNo",
+                    "TaggedPitchType",
+                    "RelSpeed",
+                    "SpinRate",
+                    "SessionDate",
+                    "SessionType"
+                ] if c in filtered_df.columns
+            ]
         )
-        fig_move.update_traces(marker=dict(size=7, opacity=0.90, line=dict(width=0.4, color=WHITE)))
-        fig_move.update_xaxes(title="Horizontal Break")
-        fig_move.update_yaxes(title="Induced Vertical Break")
+
+        fig_move.update_traces(
+            marker=dict(
+                size=8,
+                opacity=0.90,
+                line=dict(width=0.6, color=WHITE)
+            )
+        )
+
+        # Plano cartesiano
+        fig_move.add_shape(
+            type="line",
+            x0=-25,
+            x1=25,
+            y0=0,
+            y1=0,
+            line=dict(color="rgba(255,255,255,0.55)", width=2)
+        )
+
+        fig_move.add_shape(
+            type="line",
+            x0=0,
+            x1=0,
+            y0=-25,
+            y1=25,
+            line=dict(color="rgba(255,255,255,0.55)", width=2)
+        )
+
+        # Cuadrantes sutiles
+        fig_move.add_shape(
+            type="rect",
+            x0=0, x1=25, y0=0, y1=25,
+            fillcolor="rgba(143,211,255,0.04)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.add_shape(
+            type="rect",
+            x0=-25, x1=0, y0=0, y1=25,
+            fillcolor="rgba(255,255,255,0.025)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.add_shape(
+            type="rect",
+            x0=-25, x1=0, y0=-25, y1=0,
+            fillcolor="rgba(143,211,255,0.04)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.add_shape(
+            type="rect",
+            x0=0, x1=25, y0=-25, y1=0,
+            fillcolor="rgba(255,255,255,0.025)",
+            line=dict(width=0),
+            layer="below"
+        )
+
+        fig_move.update_xaxes(
+            title="Horizontal Break",
+            range=[-25, 25],
+            zeroline=False
+        )
+
+        fig_move.update_yaxes(
+            title="Induced Vertical Break",
+            range=[-25, 25],
+            zeroline=False
+        )
+
         fig_move = style_fig(fig_move)
+
         st.plotly_chart(fig_move, use_container_width=True)
     else:
         st.info("Movement data not available.")
